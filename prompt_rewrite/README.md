@@ -43,6 +43,8 @@ a file.
 pip install -r requirements.txt
 ```
 
+使用 Docker Compose 同时部署 T2I 和 edit 在线服务，请参阅[中文双服务部署指南](README_DOCKER.zh-CN.md)。
+
 Tested with `transformers==5.4.0`, `vllm==0.19.1`, `torch==2.10.0+cu128` on CUDA
 12.x. The checkpoint loads through `AutoModelForImageTextToText`, which
 dispatches on `config.model_type` (`qwen3_5` here).

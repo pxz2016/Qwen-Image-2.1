@@ -1,0 +1,64 @@
+x-pe-common: &pe-common
+  image: vllm/vllm-openai:v0.19.1
+  restart: unless-stopped
+  ipc: host
+  working_dir: /workspace/prompt_rewrite
+  entrypoint: ["/bin/bash", "/workspace/prompt_rewrite/serve.sh"]
+  volumes:
+    - ./prompt_rewrite:/workspace/prompt_rewrite:ro
+    - ./models:/models:ro
+  healthcheck:
+    test:
+      - CMD
+      - python
+      - -c
+      - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8100/health', timeout=5)"
+    interval: 15s
+    timeout: 10s
+    retries: 20
+    start_period: 300s
+
+services:
+  t2i:
+    <<: *pe-common
+    ports:
+      - "127.0.0.1:8100:8100"
+    environment:
+      CKPT: /models/Qwen-Image-2.1-PE-T2I
+      NAME: qwen-pe-t2i
+      PORT: "8100"
+      GPUS: "0"
+      TP: "1"
+      MAX_LEN: "${T2I_MAX_LEN:-24576}"
+      MEM_UTIL: "${T2I_MEM_UTIL:-0.45}"
+      MAX_IMGS: "${T2I_MAX_IMGS:-10}"
+      EAGER: "${T2I_EAGER:-0}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${T2I_GPU:-0}"]
+              capabilities: [gpu]
+
+  edit:
+    <<: *pe-common
+    ports:
+      - "127.0.0.1:8101:8100"
+    environment:
+      CKPT: /models/Qwen-Image-2.1-PE-I2I
+      NAME: qwen-pe-edit
+      PORT: "8100"
+      GPUS: "0"
+      TP: "1"
+      MAX_LEN: "${EDIT_MAX_LEN:-32768}"
+      MEM_UTIL: "${EDIT_MEM_UTIL:-0.45}"
+      MAX_IMGS: "${EDIT_MAX_IMGS:-2}"
+      EAGER: "${EDIT_EAGER:-0}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["${EDIT_GPU:-0}"]
+              capabilities: [gpu]
